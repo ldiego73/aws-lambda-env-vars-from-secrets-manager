@@ -1,0 +1,10 @@
+target/
+out/
+.vscode/
+scripts/test
+.DS_Store
+
+# Build
+out.zip
+response.json
+secrets
