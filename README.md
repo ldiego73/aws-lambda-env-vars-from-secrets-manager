@@ -17,7 +17,7 @@ This bash script acts as a wrapper for your Lambda function, performing the foll
 ## How It Works
 
 1. The script creates a temporary file to store environment variables.
-2. It executes a Rust binary (`env-from-secrets-manager`) that:
+2. It executes a Rust binary (`env-vars-from-secrets-manager`) that:
    - Retrieves the specified secrets from AWS Secrets Manager.
    - Processes the secrets according to the prefix and transformation options.
    - Writes the environment variables to the temporary file.
@@ -31,7 +31,7 @@ To use this layer in your Lambda function:
 
 1. Add this layer to your Lambda function configuration.
 2. Set the following environment variables in your Lambda function:
-   - **`AWS_LAMBDA_EXEC_WRAPPER`**: `/opt/wrapper-env-from-secrets-manager`
+   - **`AWS_LAMBDA_EXEC_WRAPPER`**: `/opt/retrieve-secrets`
    - **`SECRETS_ARN`**: ARNs of the secret in AWS Secrets Manager separated by commas without a space.
    - **`SECRETS_PREFIX`** (*optional*): Optional prefix for generated environment variables.
    - **`SECRETS_TRANSFORM`** (*optional*): Transformation option for variable names (e.g., "lower" for lowercase, "upper" for uppercase).

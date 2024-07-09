@@ -15,16 +15,16 @@ build_lambda_release:
 	@cargo lambda build --extension --release
 	@rm -rf ./out
 	@cp -R target/lambda/extensions ./out
-	@cp ./scripts/wrapper-env-from-secrets-manager ./out
-	@chmod +x ./out/env-from-secrets-manager
-	@chmod +x ./out/wrapper-env-from-secrets-manager
+	@cp ./scripts/retrieve-secrets ./out
+	@chmod +x ./out/env-vars-from-secrets-manager
+	@chmod +x ./out/retrieve-secrets
 	@cd out && zip -r ../out.zip *
 	@echo "Build completed"
 
 deploy_cli:
 	@echo "Deploying..."
 	@aws lambda publish-layer-version \
-		--layer-name env-from-secrets-manager \
+		--layer-name env-vars-from-secrets-manager \
 		--description "Layer for read secrets manager and store them in env variables" \
 		--zip-file fileb://out.zip \
 		--compatible-architectures x86_64 \
@@ -36,7 +36,7 @@ add_permissions:
 	@echo "Adding permissions..."
 	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' response.json))
 	@aws lambda add-layer-version-permission \
-		--layer-name env-from-secrets-manager \
+		--layer-name env-vars-from-secrets-manager \
 		--statement-id AWSLambdaExecute \
 		--action lambda:GetLayerVersion \
 		--principal "*" \
@@ -47,7 +47,7 @@ add_permissions:
 remove_version:
 	@echo "Removing version..."
 	@aws lambda delete-layer-version \
-		--layer-name env-from-secrets-manager \
+		--layer-name env-vars-from-secrets-manager \
 		--version-number "$(VERSION)"
 	@echo "Version removed"
 
