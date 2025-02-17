@@ -42,6 +42,73 @@ The layer will automatically retrieve the specified secrets and set them as envi
 
 ![Environment variables](docs/images/envs.png)
 
+## Local Testing
+
+To test the layer locally, you can use the following command:
+
+```bash
+export SECRETS=arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret-name
+export PATH=secrets
+export PREFIX=secret
+export TRANSFORM=upper
+
+make dev
+```
+
+or
+
+```bash
+cargo run -- --path secrets --secrets arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret-name --transform upper
+```
+
+
+## Deployment
+
+#### Prerequisites
+- cargo-lambda: https://www.cargo-lambda.info/guide/getting-started.html
+
+The layer can be deployed for both x86_64 and ARM64 architectures. To deploy the layer to AWS Lambda, follow these steps:
+
+1. Ensure you have the necessary AWS credentials and permissions configured.
+2. Build and deploy for x86_64:
+
+```bash
+# Build the layer
+make build_lambda_x86
+
+# Deploy the layer
+make deploy_cli_x86
+
+# Add permissions (requires ORG_ID to be set)
+make add_permissions_x86
+
+# Add permissions (requires ACCOUNT_ID to be set)
+make add_permissions_by_account_x86
+```
+
+3. Build and deploy for ARM64:
+
+```bash
+# Build the layer
+make build_lambda_arm
+
+# Deploy the layer
+make deploy_cli_arm
+
+# Add permissions (requires ORG_ID to be set)
+make add_permissions_arm
+
+# Add permissions (requires ACCOUNT_ID to be set)
+make add_permissions_by_account_arm
+```
+
+The layers will be deployed with the following names:
+
+x86_64: `env-vars-from-secrets-manager`
+ARM64: `env-vars-from-secrets-manager-arm64`
+
+Make sure to use the appropriate layer version according to your Lambda function's architecture.
+
 ## Security Considerations
 
 - Ensure that your Lambda function has the necessary IAM permissions to access the specified secrets in AWS Secrets Manager.
@@ -59,4 +126,3 @@ If you encounter issues:
 - Check the CloudWatch logs for your Lambda function. The script logs errors prefixed with [Secret].
 - Ensure the `SECRETS_ARN`, `SECRETS_PREFIX`, and `SECRETS_TRANSFORM` environment variables are set correctly.
 - Verify that your Lambda function has the necessary permissions to access AWS Secrets Manager.
-

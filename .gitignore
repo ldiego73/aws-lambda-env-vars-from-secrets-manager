@@ -6,5 +6,9 @@ scripts/test
 
 # Build
 out.zip
+out-x86.zip
+out-arm.zip
 response.json
+response-x86.json
+response-arm.json
 secrets
