@@ -47,7 +47,7 @@ deploy_cli_x86:
 		--description "Layer for reading secrets manager and storing them in env variables (x86_64)" \
 		--zip-file fileb://out-x86.zip \
 		--compatible-architectures x86_64 \
-		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x python3.10 python3.11 python3.12 \
+		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
 		> response-x86.json
 	@echo "Deploy completed"
 
@@ -58,7 +58,7 @@ deploy_cli_arm:
 		--description "Layer for reading secrets manager and storing them in env variables (ARM64)" \
 		--zip-file fileb://out-arm.zip \
 		--compatible-architectures arm64 \
-		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x python3.10 python3.11 python3.12 \
+		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
 		> response-arm.json
 	@echo "Deploy completed"
 
