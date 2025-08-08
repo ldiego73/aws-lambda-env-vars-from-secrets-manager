@@ -48,6 +48,7 @@ deploy_cli_x86:
 		--zip-file fileb://out-x86.zip \
 		--compatible-architectures x86_64 \
 		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
+		--region "$(REGION)" \
 		> response-x86.json
 	@echo "Deploy completed"
 
@@ -59,6 +60,7 @@ deploy_cli_arm:
 		--zip-file fileb://out-arm.zip \
 		--compatible-architectures arm64 \
 		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
+		--region "$(REGION)" \
 		> response-arm.json
 	@echo "Deploy completed"
 
@@ -71,6 +73,7 @@ add_permissions_x86:
 		--action lambda:GetLayerVersion \
 		--principal "*" \
 		--organization-id "$(ORG_ID)" \
+		--region "$(REGION)" \
 		--version-number "$(EXTENSION_VERSION)"
 	@echo "Permissions added"
 
@@ -83,6 +86,7 @@ add_permissions_by_account_x86:
 		--statement-id AWSLambdaExecute \
 		--action lambda:GetLayerVersion \
 		--principal "$(ACCOUNT_ID)" \
+		--region "$(REGION)" \
 		--version-number "$(EXTENSION_VERSION)"
 	@echo "Permissions added"
 
@@ -95,6 +99,7 @@ add_permissions_by_account_arm:
 		--statement-id AWSLambdaExecute \
 		--action lambda:GetLayerVersion \
 		--principal "$(ACCOUNT_ID)" \
+		--region "$(REGION)" \
 		--version-number "$(EXTENSION_VERSION)"
 	@echo "Permissions added"
 
@@ -107,6 +112,7 @@ add_permissions_arm:
 		--action lambda:GetLayerVersion \
 		--principal "*" \
 		--organization-id "$(ORG_ID)" \
+		--region "$(REGION)" \
 		--version-number "$(EXTENSION_VERSION)"
 	@echo "Permissions added"
 
@@ -114,6 +120,7 @@ remove_x86_version:
 	@echo "Removing version..."
 	@aws lambda delete-layer-version \
 		--layer-name "$(LAYER_NAME_X86)" \
+		--region "$(REGION)" \
 		--version-number "$(VERSION)"
 	@echo "Version removed"
 
@@ -121,6 +128,7 @@ remove_arm_version:
 	@echo "Removing version..."
 	@aws lambda delete-layer-version \
 		--layer-name "$(LAYER_NAME_ARM)" \
+		--region "$(REGION)" \
 		--version-number "$(VERSION)"
 	@echo "Version removed"
 
