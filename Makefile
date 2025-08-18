@@ -1,140 +1,105 @@
-.PHONY: build_local build_x86 build_arm build_lambda_x86 build_lambda_arm deploy_cli_x86 deploy_cli_arm add_permissions_x86 add_permissions_arm remove_version dev clean
+.PHONY: build_local build_x86 build_arm build_lambda_x86 build_lambda_arm deploy_cli_x86 deploy_cli_arm add_permissions_x86 add_permissions_arm add_permissions_by_account_x86 add_permissions_by_account_arm remove_x86_version remove_arm_version clean
 
+# Variables
 LAYER_NAME_X86 := env-vars-from-secrets-manager
 LAYER_NAME_ARM := env-vars-from-secrets-manager-arm
+TARGET_X86 := x86_64-unknown-linux-gnu
+TARGET_ARM := aarch64-unknown-linux-gnu
+COMPATIBLE_RUNTIMES := provided.al2 provided.al2023
 
 build_local:
 	@echo "Building from source..."
 	@cargo build --release
 	@echo "Build completed"
 
-build_x86:
-	@echo "Building for x86_64..."
-	@cargo build --target x86_64-unknown-linux-gnu --release
-	@echo "Build completed"
-
-build_arm:
-	@echo "Building for ARM64..."
-	@cargo build --target aarch64-unknown-linux-gnu --release
-	@echo "Build completed"
-
-build_lambda_x86:
-	@echo "Building Lambda layer for x86_64..."
-	@cargo lambda build --extension --release --target x86_64-unknown-linux-gnu
+define package_template
+	@echo "Building Lambda layer for $(2)..."
+	@cargo lambda build --extension --release --target $(1)
 	@rm -rf ./out
 	@cp -R target/lambda/extensions ./out
-	@cp ./scripts/retrieve-secrets ./out
-	@chmod +x ./out/env-vars-from-secrets-manager
-	@chmod +x ./out/retrieve-secrets
-	@cd out && zip -r ../out-x86.zip *
+	@chmod +x ./out/aws-lambda-logs-http-destination
+	@cd out && zip -r ../$(3) *
 	@echo "Build completed"
+endef
 
-build_lambda_arm:
-	@echo "Building Lambda layer for ARM64..."
-	@cargo lambda build --extension --release --target aarch64-unknown-linux-gnu
-	@rm -rf ./out
-	@cp -R target/lambda/extensions ./out
-	@cp ./scripts/retrieve-secrets ./out
-	@chmod +x ./out/env-vars-from-secrets-manager
-	@chmod +x ./out/retrieve-secrets
-	@cd out && zip -r ../out-arm.zip *
-	@echo "Build completed"
+package_x86:
+	$(call package_template,$(TARGET_X86),x86_64,out-x86.zip)
 
-deploy_cli_x86:
-	@echo "Deploying x86_64 layer..."
+package_arm:
+	$(call package_template,$(TARGET_ARM),ARM64,out-arm.zip)
+
+define deploy_template
+	@echo "Deploying $(3) layer..."
 	@aws lambda publish-layer-version \
-		--layer-name "$(LAYER_NAME_X86)" \
-		--description "Layer for reading secrets manager and storing them in env variables (x86_64)" \
-		--zip-file fileb://out-x86.zip \
-		--compatible-architectures x86_64 \
-		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
+		--layer-name "$(1)" \
+		--description "Layer for AWS Lambda Logs HTTP Destination Extension ($(3))" \
+		--zip-file fileb://$(2) \
+		--compatible-architectures $(4) \
+		--compatible-runtimes $(COMPATIBLE_RUNTIMES) \
 		--region "$(REGION)" \
-		> response-x86.json
+		> $(5)
 	@echo "Deploy completed"
+endef
 
-deploy_cli_arm:
-	@echo "Deploying ARM64 layer..."
-	@aws lambda publish-layer-version \
-		--layer-name "$(LAYER_NAME_ARM)" \
-		--description "Layer for reading secrets manager and storing them in env variables (ARM64)" \
-		--zip-file fileb://out-arm.zip \
-		--compatible-architectures arm64 \
-		--compatible-runtimes provided.al2 provided.al2023 nodejs18.x nodejs20.x nodejs22.x python3.10 python3.11 python3.12 \
+deploy_x86:
+	$(call deploy_template,$(LAYER_NAME_X86),out-x86.zip,x86_64,x86_64,response-x86.json)
+
+deploy_arm:
+	$(call deploy_template,$(LAYER_NAME_ARM),out-arm.zip,ARM64,arm64,response-arm.json)
+
+define add_permissions_template
+	@echo "Adding permissions for $(3) layer..."
+	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' $(2)))
+	@aws lambda add-layer-version-permission \
+		--layer-name "$(1)" \
+		--statement-id AWSLambdaExecute \
+		--action lambda:GetLayerVersion \
+		--principal "*" \
+		--organization-id "$(ORG_ID)" \
 		--region "$(REGION)" \
-		> response-arm.json
-	@echo "Deploy completed"
+		--version-number "$(EXTENSION_VERSION)"
+	@echo "Permissions added"
+endef
 
 add_permissions_x86:
-	@echo "Adding permissions for x86_64 layer..."
-	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' response-x86.json))
-	@aws lambda add-layer-version-permission \
-		--layer-name "$(LAYER_NAME_X86)" \
-		--statement-id AWSLambdaExecute \
-		--action lambda:GetLayerVersion \
-		--principal "*" \
-		--organization-id "$(ORG_ID)" \
-		--region "$(REGION)" \
-		--version-number "$(EXTENSION_VERSION)"
-	@echo "Permissions added"
-
-
-add_permissions_by_account_x86:
-	@echo "Adding permissions for x86_64 layer..."
-	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' response-x86.json))
-	@aws lambda add-layer-version-permission \
-		--layer-name "$(LAYER_NAME_X86)" \
-		--statement-id AWSLambdaExecute \
-		--action lambda:GetLayerVersion \
-		--principal "$(ACCOUNT_ID)" \
-		--region "$(REGION)" \
-		--version-number "$(EXTENSION_VERSION)"
-	@echo "Permissions added"
-
-
-add_permissions_by_account_arm:
-	@echo "Adding permissions for ARM64 layer..."
-	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' response-arm.json))
-	@aws lambda add-layer-version-permission \
-		--layer-name "$(LAYER_NAME_ARM)" \
-		--statement-id AWSLambdaExecute \
-		--action lambda:GetLayerVersion \
-		--principal "$(ACCOUNT_ID)" \
-		--region "$(REGION)" \
-		--version-number "$(EXTENSION_VERSION)"
-	@echo "Permissions added"
+	$(call add_permissions_template,$(LAYER_NAME_X86),response-x86.json,x86_64)
 
 add_permissions_arm:
-	@echo "Adding permissions for ARM64 layer..."
-	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' response-arm.json))
+	$(call add_permissions_template,$(LAYER_NAME_ARM),response-arm.json,ARM64)
+
+define add_permissions_by_account_template
+	@echo "Adding permissions for $(3) layer..."
+	$(eval EXTENSION_VERSION=$(shell jq -r '.Version' $(2)))
 	@aws lambda add-layer-version-permission \
-		--layer-name "$(LAYER_NAME_ARM)" \
+		--layer-name "$(1)" \
 		--statement-id AWSLambdaExecute \
 		--action lambda:GetLayerVersion \
-		--principal "*" \
-		--organization-id "$(ORG_ID)" \
+		--principal "$(ACCOUNT_ID)" \
 		--region "$(REGION)" \
 		--version-number "$(EXTENSION_VERSION)"
 	@echo "Permissions added"
+endef
+
+add_permissions_by_account_x86:
+	$(call add_permissions_by_account_template,$(LAYER_NAME_X86),response-x86.json,x86_64)
+
+add_permissions_by_account_arm:
+	$(call add_permissions_by_account_template,$(LAYER_NAME_ARM),response-arm.json,ARM64)
+
+define remove_version_template
+	@echo "Removing version..."
+	@aws lambda delete-layer-version \
+		--layer-name "$(1)" \
+		--region "$(REGION)" \
+		--version-number "$(VERSION)"
+	@echo "Version removed"
+endef
 
 remove_x86_version:
-	@echo "Removing version..."
-	@aws lambda delete-layer-version \
-		--layer-name "$(LAYER_NAME_X86)" \
-		--region "$(REGION)" \
-		--version-number "$(VERSION)"
-	@echo "Version removed"
+	$(call remove_version_template,$(LAYER_NAME_X86))
 
 remove_arm_version:
-	@echo "Removing version..."
-	@aws lambda delete-layer-version \
-		--layer-name "$(LAYER_NAME_ARM)" \
-		--region "$(REGION)" \
-		--version-number "$(VERSION)"
-	@echo "Version removed"
-
-dev:
-	@echo "Starting your app using dev...."
-	@cargo run -- --secrets $(SECRETS) --path $(PATH) --prefix secret
+	$(call remove_version_template,$(LAYER_NAME_ARM))
 
 clean:
 	@echo "Cleaning..."
