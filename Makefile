@@ -17,7 +17,9 @@ define package_template
 	@cargo lambda build --extension --release --target $(1)
 	@rm -rf ./out
 	@cp -R target/lambda/extensions ./out
-	@chmod +x ./out/aws-lambda-logs-http-destination
+	@cp ./scripts/retrieve-secrets ./out
+	@chmod +x ./out/env-vars-from-secrets-manager
+	@chmod +x ./out/retrieve-secrets
 	@cd out && zip -r ../$(3) *
 	@echo "Build completed"
 endef
@@ -32,7 +34,7 @@ define deploy_template
 	@echo "Deploying $(3) layer..."
 	@aws lambda publish-layer-version \
 		--layer-name "$(1)" \
-		--description "Layer for AWS Lambda Logs HTTP Destination Extension ($(3))" \
+		--description "Lambda layer for AWS Lambda Environment Variables from Secret Manager ($(3))" \
 		--zip-file fileb://$(2) \
 		--compatible-architectures $(4) \
 		--compatible-runtimes $(COMPATIBLE_RUNTIMES) \
